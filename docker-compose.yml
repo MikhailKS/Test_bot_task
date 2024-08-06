@@ -1,0 +1,70 @@
+
+
+services:
+  fastapi:
+    image: "${WEB_IMAGE_NAME}"
+    container_name: "${WEB_CONTAINER_NAME}"
+    restart: always
+    build:
+      context: .
+    working_dir: /app/backend
+    volumes:
+      - ./:/app/backend
+    env_file:
+      - ".env"
+    environment:
+      TZ: "Europe/Moscow"
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "10"
+    networks:
+      - dev
+    depends_on:
+      - redis
+      - mongodb
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: "${CONTAINER_NAME_NGINX}"
+    env_file:
+      - ".env"
+    restart: always
+    ports:
+      - 80:80
+    volumes:
+      - './nginx/nginx.conf:/etc/nginx/nginx.conf'
+    networks:
+      - dev
+    depends_on:
+      - fastapi
+
+  redis:
+    container_name: "${CONTAINER_NAME_REDIS}"
+    image: redis:7.2-alpine
+    env_file:
+      - ".env"
+    restart: always
+    volumes:
+      - redis_data:/data
+    networks:
+      - dev
+
+  mongodb:
+    image: mongo
+    container_name: "${CONTAINER_NAME_MONGO}"
+    env_file:
+      - ".env"
+    restart: always
+    networks:
+      - dev
+    depends_on:
+      - redis
+
+volumes:
+  redis_data: {}
+networks:
+  dev:
+
